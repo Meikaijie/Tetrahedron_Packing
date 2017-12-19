@@ -5,8 +5,10 @@ class Simplex(object):
 	# vertices should have shape nxd
 	# basis should have shape dxd
 	def __init__(self, vertices, basis=np.array([[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]])):
-		self.v = np.array(vertices)
-		self.b = np.array(basis)
+		v = map(lambda x: map(lambda y: float(y),x),vertices)
+		self.v = np.array(v)
+		b = map(lambda x: map(lambda y: float(y),x),basis)
+		self.b = np.array(b)
 		self.c = np.zeros(len(vertices[0]))
 		for vertex in vertices:
 			for i in range(len(vertex)):
@@ -46,7 +48,7 @@ class Simplex(object):
 						rotation_matrix[i][j] = -sin
 					elif i == plane[1] and j == plane[0]:
 						rotation_matrix[i][j] = sin
-		print(rotation_matrix)
+		# print(rotation_matrix)
 		offset = self.c - np.dot(rotation_matrix,self.c)
 		for i in range(len(self.v)):
 			self.v[i] = np.dot(rotation_matrix,self.v[i]) + offset

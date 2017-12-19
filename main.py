@@ -3,12 +3,12 @@ from simplex import Simplex
 from util import plot_tetrahedra
 
 def main():
-	vertices = [[0.0,0.0,0.0],[1.0,0.0,2.0],[2.0,1.0,0.0],[0.0,2.0,1.0]]
+	vertices = [[0,0,0],[1,0,2],[2,1,0],[0,2,1]]
 	tetrahedron1 = Simplex(vertices)
 	tetrahedron2 = Simplex(vertices)
 	# tetrahedron2.translate([1,1,1])
 	tetrahedron2.cRotate(25,(0,1),'deg')
-	print(tetrahedron2.v)
+	# print(tetrahedron2.v)
 	tetrahedron3 = Simplex(vertices)
 	tetrahedron3.translate([3,3,3])
 	tetrahedron4 = Simplex(vertices)
