@@ -4,7 +4,7 @@ import math
 class Simplex(object):
 	# vertices should have shape nxd
 	# basis should have shape dxd
-	def __init__(self, vertices, basis=np.array([[1,0,0],[0,1,0],[0,0,1]])):
+	def __init__(self, vertices, basis=np.array([[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]])):
 		self.v = np.array(vertices)
 		self.b = np.array(basis)
 		self.c = np.zeros(len(vertices[0]))
@@ -28,7 +28,11 @@ class Simplex(object):
 		if unit == 'deg':
 			angle = math.radians(angle)
 		cos = math.cos(angle)
+		if math.fabs(cos) < 1e-14:
+			cos = 0.0
 		sin = math.sin(angle)
+		if math.fabs(sin) < 1e-14:
+			sin = 0.0
 		rotation_matrix = np.zeros((len(self.v[0]),(len(self.v[0]))))
 		for i in range(len(rotation_matrix)):
 			for j in range(len(rotation_matrix[i])):
@@ -45,7 +49,7 @@ class Simplex(object):
 		print(rotation_matrix)
 		offset = self.c - np.dot(rotation_matrix,self.c)
 		for i in range(len(self.v)):
-			self.v[i] = np.dot(rotation_matrix,self.v[i]) #+ offset
+			self.v[i] = np.dot(rotation_matrix,self.v[i]) + offset
 
 	# def checkRegular(self):
 	# 	total = 0.0

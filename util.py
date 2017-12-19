@@ -10,8 +10,7 @@ def plot_tetrahedra(tetrahedra_list, filename):
 						 z=tetrahedron.v[:,2],
 						 i=[0, 0, 0, 1],
 						 j=[1, 2, 3, 2],
-						 k=[2, 3, 1, 3],
-						 color='blue')
+						 k=[2, 3, 1, 3])
 		mesh_list.append(mesh)
 	layout = go.Layout(xaxis=go.XAxis(title='x'),
 					   yaxis=go.YAxis(title='y'))
