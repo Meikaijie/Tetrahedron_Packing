@@ -14,6 +14,8 @@ class Simplex(object):
 			for i in range(len(vertex)):
 				self.c[i] += vertex[i]/float(len(vertices))
 
+	# Translate the tetrahedron by performing element-wise addition of tvec to
+	# each vertex in self.v
 	def translate(self, tvec):
 		assert len(tvec) == len(self.v[0]), "Translation dimensionality {0} does not match simplex dimensionilty {1}".format(len(tvec),len(self.v[0]))
 		for i in range(len(self.v)):
@@ -53,26 +55,13 @@ class Simplex(object):
 		for i in range(len(self.v)):
 			self.v[i] = np.dot(rotation_matrix,self.v[i]) + offset
 
-	# def checkRegular(self):
-	# 	total = 0.0
-	# 	edges = 0.0
-	# 	isRegular = True
-	# 	for i in range(len(self.v)):
-	# 		for j in range(i+1,len(self.v)):
-	# 			total += np.linalg.norm(self.v[i]-self.v[j])
-	# 			# print(np.linalg.norm(self.v[i]-self.v[j]))
-	# 			edges += 1
-	# 	for i in range(len(self.v)):
-	# 		for j in range(i+1,len(self.v)):
-	# 			if math.fabs(np.linalg.norm(self.v[i]-self.v[j]) - total/edges) > 0.000000001:
-	# 				# print(math.fabs(np.linalg.norm(self.v[i]-self.v[j]) - total/edges))
-	# 				isRegular = False
-	# 	if isRegular:
-	# 		print("All Good!")
-	# 	else:
-	# 		print("Bad Transformation!")
-
-
+	# Print vertices for debugging
+	def to_string(self):
+		s = ""
+		for i in range(len(self.v)):
+			for j in range(len(self.v[i])):
+				s += str(self.v[i][j]) + ' '
+		return s[:-1]
 
 
 
