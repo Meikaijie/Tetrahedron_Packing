@@ -1,5 +1,5 @@
 import numpy as np
-from simplex import Simplex
+from convexPolygon import Simplex
 from util import plot_tetrahedra, collision_detection
 
 def main():
@@ -8,7 +8,7 @@ def main():
 	tetrahedron2 = Simplex(vertices)
 	tetrahedron2.cRotate(25,(0,1),'deg')
 	tetrahedron3 = Simplex(vertices)
-	tetrahedron3.translate([3,3,3])
+	tetrahedron3.translate([1.1,1.1,1.1])
 	tetrahedron4 = Simplex(vertices)
 	tetrahedron4.translate([5,5,5])
 	tetrahedron4.cRotate(25,(0,1),'deg')
