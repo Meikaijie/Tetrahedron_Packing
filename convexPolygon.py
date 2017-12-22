@@ -24,11 +24,13 @@ class Simplex(object):
 		for i in range(len(self.c)):
 			self.c[i] += tvec[i]
 
-	# Rotate counter-clockwise about the centroid
+	# Rotate counter-clockwise about an anchor point, default anchor is centroid
 	# Takes in an angle in degrees or radians, assumes radians if no unit argument is included,
 	# and a 2d rotation plane specified by tuple or list containing 2 integers
 	# which represent the two axes defining the plane
-	def cRotate(self, angle, plane, unit='rad'):
+	def Rotate(self, angle, plane, unit='rad', anchor=None):
+		if anchor == None:
+			anchor = self.c
 		if unit == 'deg':
 			angle = math.radians(angle)
 		cos = math.cos(angle)
@@ -51,7 +53,7 @@ class Simplex(object):
 					elif i == plane[1] and j == plane[0]:
 						rotation_matrix[i][j] = sin
 		# print(rotation_matrix)
-		offset = self.c - np.dot(rotation_matrix,self.c)
+		offset = anchor - np.dot(rotation_matrix,anchor)
 		for i in range(len(self.v)):
 			self.v[i] = np.dot(rotation_matrix,self.v[i]) + offset
 
