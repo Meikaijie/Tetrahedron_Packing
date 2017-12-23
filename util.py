@@ -2,7 +2,9 @@ import numpy as np
 import plotly.offline as offline
 import plotly.graph_objs as go
 import subprocess
+import time
 from convexPolygon import Simplex
+from scipy.spatial import Delaunay
 
 def plot_tetrahedra(tetrahedra_list, filename):
 	mesh_list = []
@@ -22,24 +24,47 @@ def plot_tetrahedra(tetrahedra_list, filename):
 
 # Determines whether or not two tetrahedra intersect each other
 # Returns True if they do, False otherwise
-def collision_detection(tetra1, tetra2):
+def collision_detection(tetra1, tetra2, subproc=None):
+	# start = time.time()
 	l = np.linalg.norm(tetra1.v[0]-tetra1.c)
 	# If the centroids of 2 tetrahedra are not at least this close
 	# then there is no need to perform the expensive check
 	if np.linalg.norm(tetra1.c-tetra2.c) > 2*l:
 		return False
-	# Slow probably because I create a new clojure instance
-	# Using a python implementation will likely speed this up
 	else:
-		command = ["clojure", "tetrahedron-intersect.clj"]
-		for i in range(len(tetra1.v)):
-			for j in range(len(tetra1.v[i])):
-				command.append(str(tetra1.v[i][j]))
-		for i in range(len(tetra2.v)):
-			for j in range(len(tetra2.v[i])):
-				command.append(str(tetra2.v[i][j]))
-		collided = subprocess.check_output(command)
+		collided = None
+		# Use a persistent subprocess for many repeated collision detections
+		if not subproc == None:
+			stringv1 = tetra1.to_string()
+			stringv2 = tetra2.to_string()
+			command = '(prn (intersect-tetrahedra? '+stringv1+' '+stringv2+'))'
+			subproc.stdin.write(command)
+			subproc.stdin.write('(flush)')
+			subproc.stdout.readline() 
+			collided = subproc.stdout.readline()
+			subproc.stdout.readline()
+		# Run collision detection with new clojure REPL
+		# closes after algorithm is done
+		# better for one-time checks
+		else:
+			command = ["clojure", "tetrahedron-intersect.clj"]
+			for i in range(len(tetra1.v)):
+				for j in range(len(tetra1.v[i])):
+					command.append(str(tetra1.v[i][j]))
+			for i in range(len(tetra2.v)):
+				for j in range(len(tetra2.v[i])):
+					command.append(str(tetra2.v[i][j]))
+			collided = subprocess.check_output(command)
+
 		return collided == 'true\n'
+
+def hulls_intersecting(vertices1, vertices2):
+	hull1 = Delaunay(vertices1)
+	hull2 = Delaunay(vertices2)
+	# print(hull1.find_simplex(vertices2))
+	if True in (hull1.find_simplex(vertices2)>=0) or True in (hull2.find_simplex(vertices1)>=0):
+		return True
+	return False
 
 def cubeContainerVolume(tetlist):
 	corners = [[None,None] for _ in range(len(tetlist[0].c))]
@@ -89,6 +114,11 @@ def getCOM(tetralist):
 	return COM
 
 def randomizedPacking(numtetras, initstepscale=0.1, stepscalereduction=0.5, initrotrange=360, rotreduction=0.5, stepthreshold=1e-6, rotationthreshold=0.1, l=1.0, max_iters=1000):
+	subproc = subprocess.Popen('clojure', stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+	subproc.stdin.write('(clojure.main/load-script "tetrahedron-intersect.clj")')
+	subproc.stdin.write('(flush)')
+	subproc.stdout.readline() # flush out useless line
+	subproc.stdout.readline() # flush out useless line
 	tetralist = generate_tetrahedra(numtetras)
 	scales = [initstepscale]*len(tetralist)
 	rotranges = [initrotrange]*len(tetralist)
@@ -118,7 +148,7 @@ def randomizedPacking(numtetras, initstepscale=0.1, stepscalereduction=0.5, init
 				if j == i:
 					continue
 				else:
-					if collision_detection(translatedTet,tetralist[j]):
+					if collision_detection(translatedTet,tetralist[j],subproc):
 						useTranslation = False
 						scales[i] *= stepscalereduction
 						break
@@ -145,7 +175,7 @@ def randomizedPacking(numtetras, initstepscale=0.1, stepscalereduction=0.5, init
 				if j == i:
 					continue
 				else:
-					if collision_detection(rotatedTet,tetralist[j]):
+					if collision_detection(rotatedTet,tetralist[j],subproc):
 						useRotation = False
 						rotranges[i] *= rotreduction
 						break

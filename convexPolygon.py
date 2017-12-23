@@ -59,11 +59,16 @@ class Simplex(object):
 
 	# Print vertices for debugging
 	def to_string(self):
-		s = ""
+		s = '['
 		for i in range(len(self.v)):
+			s += '['
 			for j in range(len(self.v[i])):
-				s += str(self.v[i][j]) + ' '
-		return s[:-1]
+				if j == len(self.v[i])-1:
+					s += str(self.v[i][j])
+				else:
+					s += str(self.v[i][j]) + ' '
+			s += '] '
+		return s[:-1]+']'
 
 
 
