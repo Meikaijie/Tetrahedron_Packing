@@ -4,10 +4,11 @@ import plotly.graph_objs as go
 import subprocess
 import time
 from convexPolygon import Simplex
-from scipy.spatial import Delaunay
 
+# Plots a group of tetrahedra in a 3-D cartesian coordinate space
 def plot_tetrahedra(tetrahedra_list, filename):
 	mesh_list = []
+	# Create plotly tetrahedra meshes
 	for tetrahedron in tetrahedra_list:
 		mesh = go.Mesh3d(x=tetrahedron.v[:,0],
 						 y=tetrahedron.v[:,1],
@@ -23,8 +24,9 @@ def plot_tetrahedra(tetrahedra_list, filename):
 	offline.plot(fig, filename=filename)
 
 # Determines whether or not two tetrahedra intersect each other
+# Takes in 2 3-D simplex objects and a subprocess running a clojure REPL
 # Returns True if they do, False otherwise
-def collision_detection(tetra1, tetra2, subproc=None):
+def collision_detection(tetra1, tetra2, subproc):
 	# start = time.time()
 	l = np.linalg.norm(tetra1.v[0]-tetra1.c)
 	# If the centroids of 2 tetrahedra are not at least this close
@@ -32,40 +34,35 @@ def collision_detection(tetra1, tetra2, subproc=None):
 	if np.linalg.norm(tetra1.c-tetra2.c) > 2*l:
 		return False
 	else:
-		collided = None
-		# Use a persistent subprocess for many repeated collision detections
-		if not subproc == None:
-			stringv1 = tetra1.to_string()
-			stringv2 = tetra2.to_string()
-			command = '(prn (intersect-tetrahedra? '+stringv1+' '+stringv2+'))'
-			subproc.stdin.write(command)
-			subproc.stdin.write('(flush)')
-			subproc.stdout.readline() 
-			collided = subproc.stdout.readline()
-			subproc.stdout.readline()
+		# Uses a persistent subprocess for many repeated collision detections
+		stringv1 = tetra1.to_string()
+		stringv2 = tetra2.to_string()
+		command = '(prn (intersect-tetrahedra? '+stringv1+' '+stringv2+'))'
+		subproc.stdin.write(command)
+		subproc.stdin.write('(flush)')
+		subproc.stdout.readline() # flush out empty line
+		collided = subproc.stdout.readline()
+		subproc.stdout.readline() # flush out empty line
+
+		# Preliminary integration of provided clojure implementation for
+		# tetrahedron overlap/collision detection
 		# Run collision detection with new clojure REPL
 		# closes after algorithm is done
-		# better for one-time checks
-		else:
-			command = ["clojure", "tetrahedron-intersect.clj"]
-			for i in range(len(tetra1.v)):
-				for j in range(len(tetra1.v[i])):
-					command.append(str(tetra1.v[i][j]))
-			for i in range(len(tetra2.v)):
-				for j in range(len(tetra2.v[i])):
-					command.append(str(tetra2.v[i][j]))
-			collided = subprocess.check_output(command)
+		# very slow due to REPL boot time
+		# //////////////////////////////////////////////////
+		# command = ["clojure", "tetrahedron-intersect.clj"]
+		# for i in range(len(tetra1.v)):
+		# 	for j in range(len(tetra1.v[i])):
+		# 		command.append(str(tetra1.v[i][j]))
+		# for i in range(len(tetra2.v)):
+		# 	for j in range(len(tetra2.v[i])):
+		# 		command.append(str(tetra2.v[i][j]))
+		# collided = subprocess.check_output(command)
+		# //////////////////////////////////////////////////
 
 		return collided == 'true\n'
 
-def hulls_intersecting(vertices1, vertices2):
-	hull1 = Delaunay(vertices1)
-	hull2 = Delaunay(vertices2)
-	# print(hull1.find_simplex(vertices2))
-	if True in (hull1.find_simplex(vertices2)>=0) or True in (hull2.find_simplex(vertices1)>=0):
-		return True
-	return False
-
+# Get volume of smallest axis aligned rectangular prism containing all tetrahedra
 def cubeContainerVolume(tetlist):
 	corners = [[None,None] for _ in range(len(tetlist[0].c))]
 	for tet in tetlist:
@@ -81,14 +78,17 @@ def cubeContainerVolume(tetlist):
 	return volume
 
 # Generates a list of numtetras tetrahedra with random positions and orientations
-def generate_tetrahedra(numtetras, l=1.0):
+# initialmultiplier determines the minimum tetrahedron lengths away that two tetrahedra can be from each other
+# multiplierincrement determines how much to increase the possible placement space per additional tetrahedron
+# l determines the desired edge length of all generated tetrahedra
+def generate_tetrahedra(numtetras, initialmultiplier=2, multiplierincrement=2, l=1.0):
 	# Initialize a regular tetrahedron with a vertex at [0,0,0]
 	vertices = [[0.0,0.0,0.0],[l/np.sqrt(5),0.0,2*l/np.sqrt(5)],[2*l/np.sqrt(5),l/np.sqrt(5),0.0],[0.0,2*l/np.sqrt(5),l/np.sqrt(5)]]
 	tetralist = []
 	tetralist.append(Simplex(vertices))
-	multiplier = 2
+	multiplier = initialmultiplier
 
-	# Perform random transformations on this tetrahedron until we have numtetras
+	# Perform random transformations on copies of this tetrahedron until we have numtetras
 	for i in range(numtetras-1):
 		t = Simplex(vertices)
 		choice = np.random.choice(3)
@@ -103,9 +103,11 @@ def generate_tetrahedra(numtetras, l=1.0):
 		t.Rotate(np.random.uniform(360),(1,2),'deg')
 		t.Rotate(np.random.uniform(360),(0,2),'deg')
 		tetralist.append(t)
-		multiplier += 2
+		multiplier += multiplierincrement
 	return tetralist
 
+# Get "center of mass" of all tetrahedra,
+# calculated as the average of all tetrahedra centroids
 def getCOM(tetralist):
 	COM = np.zeros(len(tetralist[0].c))
 	for tet in tetralist:
@@ -113,22 +115,25 @@ def getCOM(tetralist):
 	COM /= len(tetralist)
 	return COM
 
-def randomizedPacking(numtetras, initstepscale=0.1, stepscalereduction=0.5, initrotrange=360, rotreduction=0.5, stepthreshold=1e-6, rotationthreshold=0.1, l=1.0, max_iters=1000):
+# Packing algorithm that randomly initializes numtetras tetrahedra in space
+# then compresses them by performing random translations and rotations that 
+# move the tetrahedra towards the collective "center of mass"
+def randomizedGuidedPacking(numtetras, genmult=2, geninc=2, initstepscale=0.9, stepscalereduction=0.95, initrotrange=360, rotreduction=0.95, stepthreshold=1e-6, rotationthreshold=0.1, l=1.0, max_iters=1000):
 	subproc = subprocess.Popen('clojure', stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 	subproc.stdin.write('(clojure.main/load-script "tetrahedron-intersect.clj")')
 	subproc.stdin.write('(flush)')
 	subproc.stdout.readline() # flush out useless line
 	subproc.stdout.readline() # flush out useless line
-	tetralist = generate_tetrahedra(numtetras)
+	tetralist = generate_tetrahedra(numtetras,genmult,geninc,l)
 	scales = [initstepscale]*len(tetralist)
 	rotranges = [initrotrange]*len(tetralist)
 	converged = [False]*len(tetralist)
 	centerOfMass = getCOM(tetralist)
 	for iteration in range(max_iters):
-		print(iteration)
+		print("Iteration: " + str(iteration))
 		updatedlist = []
 		for i, tet in enumerate(tetralist):
-			# preliminary checks
+			# preliminary convergence check
 			useTranslation = True
 			useRotation = True
 			if scales[i] < stepthreshold and rotranges[i] < rotationthreshold:
@@ -140,40 +145,56 @@ def randomizedPacking(numtetras, initstepscale=0.1, stepscalereduction=0.5, init
 			dist = np.linalg.norm(centerOfMass-tet.c)
 			step_size = scales[i]*dist
 			tvec = np.random.uniform(-step_size,step_size,len(tet.c))
+			# flip diretion of translation if it moves the tetrahedron away from COM
 			if np.linalg.norm(centerOfMass-tet.c-tvec)>dist:
 				tvec *= -1
 			translatedTet = Simplex(tet.v)
 			translatedTet.translate(tvec)
+			# reject translation if it results in a collision and scale back step size
 			for j in range(len(tetralist)):
 				if j == i:
 					continue
+				elif j < i:
+					if collision_detection(translatedTet,updatedlist[j],subproc):
+						useTranslation = False
+						scales[i] *= stepscalereduction
+						break
 				else:
 					if collision_detection(translatedTet,tetralist[j],subproc):
 						useTranslation = False
 						scales[i] *= stepscalereduction
 						break
 
+			tetUsed = tet
+			if useTranslation:
+				tetUsed = translatedTet
+
 			# get rotation
 			degrees = np.random.uniform(rotranges[i])
-			plane = (0,np.random.choice(range(1,len(tet.c))))
-			rotatedTet = Simplex(tet.v)
+			plane = (0,np.random.choice(range(1,len(tetUsed.c))))
+			rotatedTet = Simplex(tetUsed.v)
 			rotatedTet.Rotate(degrees,plane,'deg')
-			maxdist = 0
-			maxrdist = 0
-			for j in range(len(tet.v)):
-				d = np.linalg.norm(centerOfMass-tet.v[j])
+			netdist = 0
+			netrdist = 0
+			for j in range(len(tetUsed.v)):
+				d = np.linalg.norm(centerOfMass-tetUsed.v[j])
 				rd = np.linalg.norm(centerOfMass-rotatedTet.v[j])
-				if d > maxdist:
-					maxdist = d
-				if rd > maxrdist:
-					maxrdist = rd
-			if maxrdist > maxdist:
+				netdist += d
+				netrdist += rd
+			# flip direction of rotation if it increases net vertex distance from COM
+			if netrdist > netdist:
 				degrees *= -1
-			rotatedTet = Simplex(tet.v)
+			rotatedTet = Simplex(tetUsed.v)
 			rotatedTet.Rotate(degrees,plane,'deg')
+			# reject rotation if it results in a collision and scale back rotation size
 			for j in range(len(tetralist)):
 				if j == i:
 					continue
+				elif j < i:
+					if collision_detection(rotatedTet,updatedlist[j],subproc):
+						useRotation = False
+						rotranges[i] *= rotreduction
+						break
 				else:
 					if collision_detection(rotatedTet,tetralist[j],subproc):
 						useRotation = False
@@ -188,6 +209,13 @@ def randomizedPacking(numtetras, initstepscale=0.1, stepscalereduction=0.5, init
 				updatedTet.Rotate(degrees,plane,'deg')
 			updatedlist.append(updatedTet)
 
+			# update center of mass
+			if i != len(tetralist)-1:
+				centerOfMass = getCOM(updatedlist+tetralist[i+1:])
+			else:
+				centerOfMass = getCOM(updatedlist)
+
+		# update tetralist, print density calculation, check convergence condition
 		tetralist = updatedlist[:]
 		if iteration % 10 == 9:
 			cubeVolume = cubeContainerVolume(tetralist)
@@ -197,6 +225,8 @@ def randomizedPacking(numtetras, initstepscale=0.1, stepscalereduction=0.5, init
 		if not False in converged:
 			break
 	return tetralist
+
+# def dimerPacking():
 
 
 

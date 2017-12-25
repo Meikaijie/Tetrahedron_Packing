@@ -52,12 +52,11 @@ class Simplex(object):
 						rotation_matrix[i][j] = -sin
 					elif i == plane[1] and j == plane[0]:
 						rotation_matrix[i][j] = sin
-		# print(rotation_matrix)
 		offset = anchor - np.dot(rotation_matrix,anchor)
 		for i in range(len(self.v)):
 			self.v[i] = np.dot(rotation_matrix,self.v[i]) + offset
 
-	# Print vertices for debugging
+	# Print vertices for debugging and input formatting
 	def to_string(self):
 		s = '['
 		for i in range(len(self.v)):

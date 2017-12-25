@@ -1,7 +1,10 @@
 # Tetrahedron Packing
 
-Required Installations:
-Python 2.7+,
+Required Installations:  
+Python 2,
 clojure,
 numpy,
-plotly,
+plotly  
+  
+To run with default parameters, simply enter python main.py  
+
