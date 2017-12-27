@@ -13,7 +13,7 @@ def parse_args():
 	parser.add_argument("-l", "--length", type=float, help="edge length of the tetrahedra", default=1.0)
 	parser.add_argument("-i", "--iterations", type=int, help="max number of iterations", default=5000)
 	parser.add_argument("-v", "--verbose", action='store_true')
-	parser.add_argument("-b", "--bias", help="induce pairwise attraction bias between tetrahedra to avoid dogpile clustering", action='store_true')
+	parser.add_argument("-b", "--bias", help="induce nearest neighbor attraction bias between tetrahedra to avoid dogpile clustering", action='store_true')
 	parser.add_argument("-np", "--noplot", help="disable plotting tetrahedra with plotly", action='store_true', default=False)
 	return parser.parse_args()
 
