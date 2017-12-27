@@ -1,5 +1,7 @@
 # Tetrahedron Packing
 
+### Running the code
+
 Required Installations:  
 Python 2,
 clojure,
@@ -34,3 +36,7 @@ optional arguments:
   -b, --bias            induce pairwise attraction bias between tetrahedra to
                         avoid dogpile clustering  
   -np, --noplot         disable plotting tetrahedra with plotly  
+  
+### File descriptions
+  
+### Approach
