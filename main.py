@@ -3,7 +3,7 @@ import util
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="Tetrahedron Packing Simulation")
-	parser.add_argument("-n", "--numtetras", type=int, help="number of tetrahedra to pack, valid at or above 1", required=True)
+	parser.add_argument("-n", "--numtetras", type=int, help="number of tetrahedra to pack, valid at or above 1", default=3)
 	parser.add_argument("-is", "--initstepscale", type=float, help="initial step size coefficient, valid between 0 and 1", default=0.9)
 	parser.add_argument("-sr", "--stepscalereduction", type=float, help="step scale decay rate, valid between 0 and 1", default=0.999)
 	parser.add_argument("-st", "--stepthreshold", type=float, help="minimum allowed step scale, valid above 0", default=1e-6)
